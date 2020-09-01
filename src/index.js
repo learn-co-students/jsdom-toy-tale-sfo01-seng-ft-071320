@@ -1,116 +1,113 @@
 let addToy = false;
 
 const allToysURL = 'http://localhost:3000/toys';
-const addBtn = document.querySelector('#new-toy-btn');
-const toyFormContainer = document.querySelector('.container');
-const toyCollectionDiv = document.querySelector('#toy-collection');
-const addToyForm = document.querySelector('.add-toy-form');
+const addBtn = document.querySelector("#new-toy-btn");
+const toyFormContainer = document.querySelector(".container");
+const toyCollectionDiv = document.getElementById('toy-collection');
+const newToyForm = document.querySelector('.add-toy-form');
+const likeBtn = document.querySelector('.like-btn');
 
 document.addEventListener("DOMContentLoaded", () => {
-  fetchToys();
-  listenToToyForm();
-  listenToLikeButton();
+  toggleButton();
+  getToys();
+  submitNewToy();
+  likeAToy();
 });
-
-
-  addBtn.addEventListener('click', () => {
+  
+function toggleButton() {
+  addBtn.addEventListener("click", () => {
     // hide & seek with the form
     addToy = !addToy;
     if (addToy) {
-      toyFormContainer.style.display = 'block';
+      toyFormContainer.style.display = "block";
     } else {
-      toyFormContainer.style.display = 'none';
+      toyFormContainer.style.display = "none";
     }
   });
-
-function listenToToyForm() {
-  addToyForm.addEventListener('submit', handleToyForm)
 }
 
-function listenToLikeButton() {
-  toyCollectionDiv.addEventListener('click', function(e) {
-    if (e.target.tagName === 'BUTTON') {
-      const toyId = e.target.dataset.id; //returns a string of the id
-      const likesTag = e.target.parentElement.querySelector('p'); //returns <p>8 Likes</p>
-      const currentLikes = parseInt(likesTag.textContent); //converts the string "8 Likes" and returns 8 as integer.
-      const updatedLikes = currentLikes + 1;
-      const updatedToy = {
-        likes: updatedLikes
-      }
-      fetchPatch(toyId, updatedToy);
+function submitNewToy() {
+  newToyForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    let nameInput = e.target.name;
+    let imageInput = e.target.image;
+    const name = nameInput.value;
+    const image = imageInput.value;
+    nameInput = '';
+    imageInput = '';
 
-      //UPDATE THE FRONTEND 
-        //to do that we need to find the tag that holds the value and set the value to the updated likes value.
-        likesTag.textContent = `${updatedLikes} Likes`
+    const newToy = {
+      name: name,
+      image: image,
+      likes: 0
     }
+    createToy(newToy)
   })
 }
 
-function handleToyForm(e) {
-  e.preventDefault();
+function likeAToy() {
+  toyCollectionDiv.addEventListener('click', function(e) {
 
-  let nameInput = e.target.name;
-  let imageInput = e.target.image;
-  const name = nameInput.value;
-  const image = imageInput.value;
-
-  const newToy = {
-    name: name,
-    image: image,
-    likes: 0,
-  };
-  fetchPost(newToy);
-
-  nameInput = '';
-  imageInput = '';
+    if (e.target.tagName === 'BUTTON') {
+      const toyId = e.target.id;
+      const likeTag = e.target.previousElementSibling;
+      const currentNumLikes = parseInt(e.target.previousSibling.textContent);
+      const newNumLikes = currentNumLikes + 1;
+      const updatedLikes = {
+        likes: newNumLikes,
+      };
+      likeToy(toyId, updatedLikes)
+      likeTag.textContent = `${newNumLikes} Likes`;
+    }
+  });
 }
 
-async function fetchPost(newToy) {
-  const postResponse = await fetch(allToysURL, {
+async function getToys() {
+  const response = await fetch(allToysURL)
+  const allToys = await response.json()
+
+  allToys.forEach(toy => {
+    createElements(toy)
+  })
+}
+
+async function createToy(newToy) {
+  const response = await fetch(allToysURL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(newToy)
-  });
-  toyCollectionDiv.innerHTML += appendToy(newToy);
-  
+  })
+  createElements(newToy)
 }
 
-async function fetchPatch(toyId, updatedToy) {
-  const singleToy = `http://localhost:3000/toys/${toyId}`
-  const patchResponse = await fetch(singleToy, {
+async function likeToy(toyId, updatedLikes) {
+  const response = await fetch(`http://localhost:3000/toys/${toyId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(updatedToy)
-  });
-  // toyCollectionDiv.innerHTML += appendToy(updatedToy)
-}
-
-async function fetchToys() {
-  const toysFetch = await fetch(allToysURL);
-  const toys = await toysFetch.json();
-
-  toys.forEach(toy => {
-    toyCollectionDiv.innerHTML += appendToy(toy)
-    // debugger
+    body: JSON.stringify(updatedLikes)
   })
 }
 
-function appendToy(toy) {
-  return `
-  <div class="card">
-    <h2>${toy.name}</h2>
-    <img src="${toy.image}"class="toy-avatar" />
-    <p>${toy.likes} Likes </p>
-    <button data-id="${toy.id}" class="like-btn">Like <3</button>
-  </div>`
+function createElements(toy) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  toyCollectionDiv.append(div)
+  const h2 = document.createElement('h2');
+  h2.textContent = toy.name
+  const img = document.createElement('img');
+  img.className = 'toy-avatar';
+  img.src = toy.image;
+
+  const p = document.createElement('p');
+  p.textContent = `${toy.likes} Likes`;
+  const btn = document.createElement('BUTTON');
+  btn.className = 'like-btn';
+  btn.id = toy.id
+  btn.textContent = 'Like <3';
+
+  div.append(h2, img, p, btn)
 }
-
-//do a post request 
-
-//find the add new toy button and add an event listener to the form
-
-// find the information to render a toy to the page
